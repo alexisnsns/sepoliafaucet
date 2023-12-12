@@ -8,7 +8,6 @@ import { getDefaultWallets, RainbowKitProvider } from "@rainbow-me/rainbowkit";
 import { sepolia } from "wagmi/chains";
 import "@rainbow-me/rainbowkit/styles.css";
 
-// ToDo: add MainNet for prod
 const { chains, publicClient } = configureChains(
   [
     {
