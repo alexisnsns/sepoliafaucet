@@ -1,26 +1,54 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React, { useState } from "react";
+import "./App.css";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 
-function App() {
+import Donate from "./Donate";
+
+const App = () => {
+  const [address, setAddress] = useState("");
+  const [message, setMessage] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+  };
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <>
+      <div className="login">
+        <ConnectButton />
+      </div>
+      <div className="container">
+        <h1>Sepolia ETH Faucet</h1>
+        <form onSubmit={handleSubmit} className="faucet-form">
+          <div className="form-group">
+            <label htmlFor="ethAddress">Ethereum Address</label>
+            <input
+              type="text"
+              id="ethAddress"
+              className="form-control"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder="Enter your Ethereum address"
+            />
+          </div>
+          <button type="submit" className="submit-btn">
+            Get Sepolia ETH
+          </button>
+        </form>
+        {message && <div className="message">{message}</div>}
+        {/* <button type="submit" className="submit-btn">
+        Give Back to the Faucet
+      </button> */}
+        <Donate />
+      </div>
+    </>
   );
-}
+};
 
 export default App;
+
+// CONTRACT
+// one function to receive sepolia eth, returns confirmation message
+// read function: you received xx total sepolia eth
+// read function: too bad! you've already had your share, can only get every 24h
+// read function: the faucet
