@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import "./App.css";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { EthValue } from "russianrouleth";
 
 import Donate from "./Donate";
 
@@ -19,6 +20,11 @@ const App = () => {
       </div>
       <div className="container">
         <h1>Sepolia ETH Faucet</h1>
+        <p>
+          {" "}
+          Current USD value of 0.1 eth:
+          <EthValue />{" "}
+        </p>
         <form onSubmit={handleSubmit} className="faucet-form">
           <div className="form-group">
             <label htmlFor="ethAddress">Ethereum Address</label>
