@@ -1,8 +1,6 @@
 import React, { useState } from "react";
 import "./App.css";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { EthValue } from "russianrouleth";
-
 import Donate from "./Donate";
 
 const App = () => {
@@ -11,6 +9,20 @@ const App = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setMessage("Sending...");
+
+    try {
+      const res = await fetch("/api/faucet", {
+      // const res = await fetch("http://localhost:3000/api/faucet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ to: address }),
+      });
+      const data = await res.json();
+      setMessage(data.message);
+    } catch (err) {
+      setMessage("Something went wrong.");
+    }
   };
 
   return (
@@ -20,11 +32,7 @@ const App = () => {
       </div>
       <div className="container">
         <h1>Sepolia ETH Faucet</h1>
-        <p>
-          {" "}
-          Current USD value of 0.1 eth:
-          <EthValue />{" "}
-        </p>
+        <p> Current USD value of 0.1 eth:</p>
         <form onSubmit={handleSubmit} className="faucet-form">
           <div className="form-group">
             <label htmlFor="ethAddress">Ethereum Address</label>
@@ -42,9 +50,9 @@ const App = () => {
           </button>
         </form>
         {message && <div className="message">{message}</div>}
-        {/* <button type="submit" className="submit-btn">
-        Give Back to the Faucet
-      </button> */}
+        <button type="submit" className="submit-btn">
+          Give Back to the Faucet
+        </button>
         <Donate />
       </div>
     </>
@@ -52,9 +60,3 @@ const App = () => {
 };
 
 export default App;
-
-// CONTRACT
-// one function to receive sepolia eth, returns confirmation message
-// read function: you received xx total sepolia eth
-// read function: too bad! you've already had your share, can only get every 24h
-// read function: the faucet
