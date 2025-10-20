@@ -7,6 +7,8 @@ import { ethers } from "ethers";
 const FAUCET_ADDRESS = "0xe19c88086C8d551C81ff8a3e2c5DF87a88110a51";
 
 const App = () => {
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
   const [address, setAddress] = useState("");
   const [txInfo, setTxInfo] = useState<{
     hash: string;
@@ -23,13 +25,28 @@ const App = () => {
 
   const { address: userAddress, isConnected } = useAccount();
 
+  const mainnetProvider = new ethers.providers.JsonRpcProvider(
+    "https://eth.llamarpc.com"
+  );
   // 🔹 Handle Faucet (Receive) Submit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setTxInfo(null);
+    setErrorMessage(null);
 
     try {
+      // ✅ Check mainnet balance
+      const mainnetBalance = await mainnetProvider.getBalance(address);
+      if (mainnetBalance.isZero()) {
+        setLoading(false);
+        setErrorMessage(
+          "You need to have some ETH on mainnet to claim testnet ETH so as to avoid spamming."
+        );
+        return;
+      }
+
+      // 🔹 Proceed with Sepolia faucet
       const res = await fetch("http://localhost:5001/api/faucet", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -49,8 +66,8 @@ const App = () => {
       }
     } catch (err) {
       setLoading(false);
-      alert("Something went wrong.");
       console.error(err);
+      setErrorMessage("Something went wrong checking your balance.");
     }
   };
 
@@ -155,6 +172,8 @@ const App = () => {
         </button>
       </form>
 
+      {errorMessage && <div className="error-message">{errorMessage}</div>}
+
       {loading && (
         <div className="loader-container">
           <div className="loader"></div>
@@ -208,16 +227,18 @@ const App = () => {
           />
           {!donateTx && !donateLoading && (
             <form onSubmit={handleDonate} className="faucet-form">
-              <label htmlFor="ethAddress">Amount in ETH</label>
-
-              <input
-                type="number"
-                value={donateAmount}
-                className="form-control"
-                onChange={(e) => setDonateAmount(e.target.value)}
-                placeholder="0.1"
-                disabled={donateLoading}
-              />
+              <div className="form-group">
+                <label htmlFor="donateForm">Amount in ETH</label>
+                <input
+                  type="number"
+                  id="donateForm"
+                  value={donateAmount}
+                  className="form-control"
+                  onChange={(e) => setDonateAmount(e.target.value)}
+                  placeholder="0.1"
+                  disabled={donateLoading}
+                />
+              </div>
               <button
                 className="submit-btn"
                 type="submit"
@@ -266,7 +287,7 @@ const App = () => {
         </>
       ) : (
         <div className="section-divider">
-          ... Or connect your wallet to donate to the faucet 💚
+          ... Or connect your wallet to donate back to the faucet 💚
         </div>
       )}
     </div>

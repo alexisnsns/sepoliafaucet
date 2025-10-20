@@ -153,6 +153,16 @@ label {
   color: #555;
 }
 
+.error-message {
+  background-color: #fee2e2; /* light red */
+  color: #b91c1c; /* dark red text */
+  padding: 0.8rem 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+  position: relative;
+  text-align: center;
+}
+
 /* Loader */
 .loader-container {
   display: flex;
