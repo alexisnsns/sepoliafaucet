@@ -4,7 +4,7 @@ import { ethers } from "ethers";
 const RPC_URL = "https://ethereum-sepolia-rpc.publicnode.com";
 const AMOUNT = "0.01";
 
-export default async function handler(req, res) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
     return res.status(405).json({ message: "Only POST allowed" });
   }
@@ -32,7 +32,7 @@ export default async function handler(req, res) {
       message: `✅ Sent ${AMOUNT} Sepolia ETH to ${to}`,
       txHash: tx.hash,
     });
-  } catch (err) {
+  } catch (err: any) {
     console.error(err);
     return res
       .status(500)

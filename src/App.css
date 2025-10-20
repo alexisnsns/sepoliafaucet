@@ -48,3 +48,45 @@
   margin-right: 8px;
   margin-top: 8px;
 }
+
+.confirmation-card {
+  margin-top: 1.5rem;
+  padding: 1.2rem 1.5rem;
+  border: 1px solid #4caf50;
+  border-radius: 12px;
+  background-color: #e8f5e9;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+  animation: fadeIn 0.4s ease-in-out;
+}
+
+.confirmation-card h2 {
+  margin: 0 0 0.5rem 0;
+  color: #2e7d32;
+}
+
+.confirmation-card p {
+  margin: 0 0 1rem 0;
+  color: #2e7d32;
+  font-weight: 500;
+}
+
+.confirmation-row {
+  margin-bottom: 0.4rem;
+  font-size: 0.95rem;
+}
+
+.confirmation-row a {
+  color: #1b5e20;
+  text-decoration: underline;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

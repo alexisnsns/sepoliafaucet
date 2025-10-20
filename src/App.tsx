@@ -10,75 +10,105 @@ const FAUCET_ADDRESS = "0xe19c88086C8d551C81ff8a3e2c5DF87a88110a51";
 
 const App = () => {
   const [address, setAddress] = useState("");
-  const [message, setMessage] = useState("");
+  const [txInfo, setTxInfo] = useState<{
+    hash: string;
+    to: string;
+    network: string;
+  } | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  // 🔌 use wagmi to check connection
   const { address: userAddress, isConnected } = useAccount();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setMessage("Sending...");
+    setLoading(true);
+    setTxInfo(null);
 
     try {
-      const res = await fetch("/api/faucet", {
+      const res = await fetch("http://localhost:5001/api/faucet", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ to: address }),
       });
       const data = await res.json();
-      setMessage(data.message);
+      setLoading(false);
+
+      if (data.txHash) {
+        setTxInfo({
+          hash: data.txHash,
+          to: address,
+          network: "Ethereum Sepolia",
+        });
+      } else {
+        alert(data.message || "Transaction failed");
+      }
     } catch (err) {
-      setMessage("Something went wrong.");
+      setLoading(false);
+      alert("Something went wrong.");
+      console.error(err);
     }
   };
 
-  const { sendTransaction } = useSendTransaction();
-  const handleGiveBack = async () => {
-    sendTransaction({
-      to: FAUCET_ADDRESS,
-      value: parseEther("0.1"),
-    });
-  };
-
   return (
-    <>
+    <div className="container">
       <div className="login">
         <ConnectButton />
       </div>
 
-      <div className="container">
-        <h1>Sepolia ETH Faucet</h1>
-        <p>Current USD value of 0.1 ETH:</p>
+      <h1>Sepolia ETH Faucet</h1>
+      <p>Current USD value of 0.1 ETH:</p>
 
-        <form onSubmit={handleSubmit} className="faucet-form">
-          <div className="form-group">
-            <label htmlFor="ethAddress">Ethereum Address</label>
-            <input
-              type="text"
-              id="ethAddress"
-              className="form-control"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              placeholder="Enter your Ethereum address"
-            />
+      <form onSubmit={handleSubmit} className="faucet-form">
+        <div className="form-group">
+          <label htmlFor="ethAddress">Ethereum Address</label>
+          <input
+            type="text"
+            id="ethAddress"
+            className="form-control"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            placeholder="Enter your Ethereum address"
+            disabled={loading}
+          />
+        </div>
+        <button type="submit" className="submit-btn" disabled={loading}>
+          {loading ? "Sending..." : "Get Sepolia ETH"}
+        </button>
+      </form>
+
+      {/* Fancy confirmation card */}
+      {txInfo && (
+        <div className="confirmation-card">
+          <h2>💧 Drip complete</h2>
+          <p>Testnet tokens sent! Check your wallet address.</p>
+          <div className="confirmation-row">
+            <strong>Network:</strong> {txInfo.network}
           </div>
-          <button type="submit" className="submit-btn">
-            Get Sepolia ETH
-          </button>
-        </form>
+          <div className="confirmation-row">
+            <strong>Recipient:</strong> {txInfo.to}
+          </div>
+          <div className="confirmation-row">
+            <strong>Transaction hash:</strong>{" "}
+            <a
+              href={`https://sepolia.etherscan.io/tx/${txInfo.hash}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {txInfo.hash}
+            </a>
+          </div>
+        </div>
+      )}
 
-        {message && <div className="message">{message}</div>}
-
-        {/* 🧠 Only show donate button if connected */}
-        {isConnected ? (
-          <Donate />
-        ) : (
-          <p style={{ marginTop: "1rem", color: "#888" }}>
-            Connect your wallet to give back to the faucet 💧
-          </p>
-        )}
-      </div>
-    </>
+      {/* Only show donate if connected */}
+      {isConnected ? (
+        <Donate />
+      ) : (
+        <p style={{ marginTop: "1rem", color: "#888" }}>
+          Connect your wallet to give back to the faucet 💧
+        </p>
+      )}
+    </div>
   );
 };
 
