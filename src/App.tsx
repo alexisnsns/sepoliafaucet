@@ -197,7 +197,15 @@ const App = () => {
       {/* 🔹 Donate Section */}
       {isConnected ? (
         <>
-          <hr />
+          <hr
+            style={{
+              border: "none",
+              height: "2px",
+              backgroundColor: "#4ade80", // a nice green, Vercel-ish vibe
+              margin: "2rem 0",
+              borderRadius: "1px",
+            }}
+          />
           {!donateTx && !donateLoading && (
             <form onSubmit={handleDonate} className="faucet-form">
               <label htmlFor="ethAddress">Amount in ETH</label>

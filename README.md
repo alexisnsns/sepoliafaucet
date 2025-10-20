@@ -4,6 +4,6 @@ The faucet is currently disabled temporarily — need to add rate-limiting to pr
 
 sepoliafaucet.vercel.app
 
-
-check for mainnet balance
-write on a file if user already received
+TODO:
+- check for mainnet balance
+- check on etherscan if user received in the past 24h from the faucet
