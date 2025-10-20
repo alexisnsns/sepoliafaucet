@@ -1,10 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./App.css";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { useAccount } from "wagmi";
-import Donate from "./Donate";
-import { useSendTransaction } from "wagmi";
-import { parseEther } from "viem";
+import { useAccount, useSendTransaction } from "wagmi";
+import { ethers } from "ethers";
 
 const FAUCET_ADDRESS = "0xe19c88086C8d551C81ff8a3e2c5DF87a88110a51";
 
@@ -16,9 +14,16 @@ const App = () => {
     network: string;
   } | null>(null);
   const [loading, setLoading] = useState(false);
+  const [donateAmount, setDonateAmount] = useState("");
+  const [donateTx, setDonateTx] = useState<{
+    hash: string;
+    network: string;
+  } | null>(null);
+  const [donateLoading, setDonateLoading] = useState(false);
 
   const { address: userAddress, isConnected } = useAccount();
 
+  // 🔹 Handle Faucet (Receive) Submit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -49,6 +54,73 @@ const App = () => {
     }
   };
 
+  // 🔹 Donate Section Logic
+  useEffect(() => {
+    const fetchBalance = async () => {
+      if (!isConnected || !userAddress || !window.ethereum) return;
+
+      try {
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const balance = await provider.getBalance(userAddress);
+        const balanceEth = parseFloat(ethers.utils.formatEther(balance));
+        const defaultAmount = Math.max(balanceEth - 0.05, 0).toFixed(4);
+        setDonateAmount(defaultAmount);
+      } catch (err) {
+        console.error("Failed to fetch balance:", err);
+      }
+    };
+
+    fetchBalance();
+  }, [isConnected, userAddress]);
+
+  const normalizedDonateAmount = donateAmount.replace(",", ".").trim();
+
+  let donateAmountWei: bigint | undefined;
+  try {
+    const amt = ethers.utils.parseEther(normalizedDonateAmount || "0");
+    donateAmountWei = BigInt(amt.toString());
+  } catch {
+    donateAmountWei = undefined;
+  }
+
+  const { sendTransaction: sendDonateTx } = useSendTransaction({
+    to: FAUCET_ADDRESS,
+    value: donateAmountWei,
+    onSettled(data, error) {
+      setDonateLoading(false);
+      if (error) {
+        console.error("Donate Error:", error);
+        alert("Transaction failed.");
+      } else if (data?.hash) {
+        setDonateTx({ hash: data.hash, network: "Ethereum Sepolia" });
+      }
+    },
+  });
+
+  const handleDonate = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!isConnected) {
+      alert("Connect your wallet first!");
+      return;
+    }
+
+    if (!normalizedDonateAmount || isNaN(Number(normalizedDonateAmount))) {
+      alert("Enter a valid amount.");
+      return;
+    }
+
+    setDonateLoading(true);
+
+    try {
+      await sendDonateTx?.();
+    } catch (err) {
+      setDonateLoading(false);
+      console.error(err);
+      alert("Transaction failed.");
+    }
+  };
+
   return (
     <div className="container">
       <div className="login">
@@ -56,8 +128,9 @@ const App = () => {
       </div>
 
       <h1>Sepolia ETH Faucet</h1>
-      <p>Current USD value of 0.1 ETH:</p>
+      <p>Claim some testnet ETH instantly</p>
 
+      {/* 🔹 Receive Section */}
       <form onSubmit={handleSubmit} className="faucet-form">
         <div className="form-group">
           <label htmlFor="ethAddress">Ethereum Address</label>
@@ -67,18 +140,39 @@ const App = () => {
             className="form-control"
             value={address}
             onChange={(e) => setAddress(e.target.value)}
-            placeholder="Enter your Ethereum address"
+            placeholder="0x..."
             disabled={loading}
           />
         </div>
-        <button type="submit" className="submit-btn" disabled={loading}>
+        <button
+          type="submit"
+          className="submit-btn"
+          disabled={
+            loading || !(address.startsWith("0x") && address.length === 42)
+          }
+        >
           {loading ? "Sending..." : "Get Sepolia ETH"}
         </button>
       </form>
 
-      {/* Fancy confirmation card */}
+      {loading && (
+        <div className="loader-container">
+          <div className="loader"></div>
+          <p>Sending transaction...</p>
+        </div>
+      )}
+
       {txInfo && (
         <div className="confirmation-card">
+          {/* Close button */}
+          <button
+            className="close-btn"
+            onClick={() => setTxInfo(null)}
+            aria-label="Close"
+          >
+            ×
+          </button>
+
           <h2>💧 Drip complete</h2>
           <p>Testnet tokens sent! Check your wallet address.</p>
           <div className="confirmation-row">
@@ -100,13 +194,72 @@ const App = () => {
         </div>
       )}
 
-      {/* Only show donate if connected */}
+      {/* 🔹 Donate Section */}
       {isConnected ? (
-        <Donate />
+        <>
+          <hr />
+          {!donateTx && !donateLoading && (
+            <form onSubmit={handleDonate} className="faucet-form">
+              <label htmlFor="ethAddress">Amount in ETH</label>
+
+              <input
+                type="number"
+                value={donateAmount}
+                className="form-control"
+                onChange={(e) => setDonateAmount(e.target.value)}
+                placeholder="0.1"
+                disabled={donateLoading}
+              />
+              <button
+                className="submit-btn"
+                type="submit"
+                disabled={donateLoading}
+              >
+                Give back to the faucet
+              </button>
+            </form>
+          )}
+
+          {donateLoading && (
+            <div className="loader-container">
+              <div className="loader"></div>
+              <p>Sending donation...</p>
+            </div>
+          )}
+
+          {donateTx && (
+            <div className="confirmation-card">
+              {/* Close button */}
+              <button
+                className="close-btn"
+                onClick={() => setDonateTx(null)}
+                aria-label="Close"
+              >
+                &times;
+              </button>
+
+              <h2>💚 Donation sent</h2>
+              <p>Thanks for supporting the faucet!</p>
+              <div className="confirmation-row">
+                <strong>Network:</strong> {donateTx.network}
+              </div>
+              <div className="confirmation-row">
+                <strong>Transaction hash:</strong>{" "}
+                <a
+                  href={`https://sepolia.etherscan.io/tx/${donateTx.hash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {donateTx.hash}
+                </a>
+              </div>
+            </div>
+          )}
+        </>
       ) : (
-        <p style={{ marginTop: "1rem", color: "#888" }}>
-          Connect your wallet to give back to the faucet 💧
-        </p>
+        <div className="section-divider">
+          ... Or connect your wallet to donate to the faucet 💚
+        </div>
       )}
     </div>
   );
