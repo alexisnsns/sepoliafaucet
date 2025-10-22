@@ -25,6 +25,31 @@ const App = () => {
 
   const { address: userAddress, isConnected } = useAccount();
 
+  const [faucetBalance, setFaucetBalance] = useState<string | null>(null);
+
+  // 🔹 Fetch faucet balance on mount
+  useEffect(() => {
+    const fetchFaucetBalance = async () => {
+      try {
+        const provider = new ethers.providers.JsonRpcProvider(
+          "https://ethereum-sepolia-rpc.publicnode.com"
+        );
+        const balance = await provider.getBalance(FAUCET_ADDRESS);
+        setFaucetBalance(
+          parseFloat(ethers.utils.formatEther(balance)).toFixed(2)
+        );
+      } catch (err) {
+        console.error("Failed to fetch faucet balance:", err);
+      }
+    };
+
+    fetchFaucetBalance();
+
+    // Optional: refresh every minute
+    const interval = setInterval(fetchFaucetBalance, 60_000);
+    return () => clearInterval(interval);
+  }, []);
+
   const mainnetProvider = new ethers.providers.JsonRpcProvider(
     "https://eth.llamarpc.com"
   );
@@ -167,14 +192,16 @@ const App = () => {
       <div className="login">
         <ConnectButton />
       </div>
-
       <h1>Sepolia ETH Faucet</h1>
       <span>Claim some testnet ETH instantly.</span>
       <span>
         One claim allowed every 24h. Your address needs to have some ETH on
         mainnet to avoid spam.
       </span>
-
+      <span>
+        Current faucet Balance:{" "}
+        {faucetBalance ? `${faucetBalance} ETH` : "Loading..."}
+      </span>{" "}
       {/* 🔹 Receive Section */}
       <form onSubmit={handleSubmit} className="faucet-form">
         <div className="form-group">
@@ -199,16 +226,13 @@ const App = () => {
           {loading ? "Sending..." : "Get Sepolia ETH"}
         </button>
       </form>
-
       {errorMessage && <div className="error-message">{errorMessage}</div>}
-
       {loading && (
         <div className="loader-container">
           <div className="loader"></div>
           <p>Sending transaction...</p>
         </div>
       )}
-
       {txInfo && (
         <div className="confirmation-card">
           {/* Close button */}
@@ -240,7 +264,6 @@ const App = () => {
           </div>
         </div>
       )}
-
       {/* 🔹 Donate Section */}
       {isConnected ? (
         <>
