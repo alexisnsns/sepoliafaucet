@@ -10,44 +10,44 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-  // ✅ Handle preflight requests
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
-
-  if (req.method !== "POST") {
+  if (req.method === "OPTIONS") return res.status(200).end();
+  if (req.method !== "POST")
     return res.status(405).json({ message: "Only POST allowed" });
-  }
 
   const { to } = req.body;
   if (!to || !ethers.utils.isAddress(to)) {
-    return res.status(400).json({ message: "Invalid address" });
+    return res.status(400).json({ message: "Invalid Ethereum address" });
   }
 
   try {
     const PRIVATE_KEY = process.env.PRIVATE_KEY;
+    const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY;
+
     if (!PRIVATE_KEY) throw new Error("Missing PRIVATE_KEY env var");
+    if (!ETHERSCAN_API_KEY)
+      throw new Error("Missing ETHERSCAN_API_KEY env var");
 
     const provider = new ethers.providers.JsonRpcProvider(RPC_URL);
     const wallet = new ethers.Wallet(PRIVATE_KEY, provider);
 
-    // ✅ Check faucet balance
+    // ✅ 1. Check faucet balance
     const balance = await wallet.getBalance();
     if (balance.lt(ethers.utils.parseEther(AMOUNT))) {
-      return res.status(400).json({
-        message: "Faucet is empty. Please try again later.",
-      });
+      return res
+        .status(400)
+        .json({ message: "Faucet is empty. Please try again later." });
     }
 
-    // ✅ Check Etherscan for recent faucet transfers
-    const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY;
-    if (!ETHERSCAN_API_KEY)
-      throw new Error("Missing ETHERSCAN_API_KEY in environment");
-
-    const txRes = await fetch(
-      `https://api.etherscan.io/v2/api?chainid=11155111&module=account&action=txlist&address=${FAUCET_ADDRESS}&sort=desc&apikey=${ETHERSCAN_API_KEY}`
-    );
-    const txData = await txRes.json();
+    // ✅ 2. Check recent claims from faucet (Etherscan V2)
+    let txData: any = { status: "0", result: [] };
+    try {
+      const txRes = await fetch(
+        `https://api.etherscan.io/v2/api?chainid=11155111&module=account&action=txlist&address=${FAUCET_ADDRESS}&sort=desc&apikey=${ETHERSCAN_API_KEY}`
+      );
+      txData = await txRes.json();
+    } catch (err) {
+      console.warn("Failed to fetch Etherscan txs, skipping 24h check", err);
+    }
 
     if (txData.status === "1" && Array.isArray(txData.result)) {
       const now = Math.floor(Date.now() / 1000);
@@ -67,16 +67,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // ✅ Send transaction if user not claimed recently
+    // ✅ 3. Send transaction (return immediately, don’t wait)
     const tx = await wallet.sendTransaction({
       to,
       value: ethers.utils.parseEther(AMOUNT),
     });
 
-    await tx.wait();
-
     return res.status(200).json({
-      message: `✅ Sent ${AMOUNT} Sepolia ETH to ${to}`,
+      message: `✅ Transaction sent! Sepolia ETH is on the way to ${to}`,
       txHash: tx.hash,
     });
   } catch (err: any) {
