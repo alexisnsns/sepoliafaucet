@@ -64,6 +64,7 @@ const App = () => {
 
       // ✅ Call backend faucet
       const res = await fetch("/api/faucet", {
+        // const res = await fetch("http://localhost:3000/api/faucet", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ to: checksumAddress }),
@@ -169,7 +170,10 @@ const App = () => {
 
       <h1>Sepolia ETH Faucet</h1>
       <span>Claim some testnet ETH instantly.</span>
-      <span>One claim allowed every 24h. Your address needs to have some ETH on mainnet to avoid spam.</span>
+      <span>
+        One claim allowed every 24h. Your address needs to have some ETH on
+        mainnet to avoid spam.
+      </span>
 
       {/* 🔹 Receive Section */}
       <form onSubmit={handleSubmit} className="faucet-form">
