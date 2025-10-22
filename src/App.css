@@ -30,6 +30,11 @@ p {
   color: #666;
 }
 
+span {
+  text-align: center;
+  color: #666;
+}
+
 .login {
   display: flex;
   justify-content: center;

@@ -28,7 +28,7 @@ const App = () => {
   const mainnetProvider = new ethers.providers.JsonRpcProvider(
     "https://eth.llamarpc.com"
   );
-  // 🔹 Handle Faucet (Receive) Submit
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -36,8 +36,24 @@ const App = () => {
     setErrorMessage(null);
 
     try {
-      // ✅ Check mainnet balance first
-      const mainnetBalance = await mainnetProvider.getBalance(address);
+      // ✅ Sanitize user input: trim and checksum
+      let checksumAddress: string | null = null;
+      try {
+        checksumAddress = ethers.utils.getAddress(address.trim());
+      } catch {
+        // If address is invalid, try to sanitize common issues
+        const cleaned = address.trim().toLowerCase();
+        if (ethers.utils.isAddress(cleaned)) {
+          checksumAddress = ethers.utils.getAddress(cleaned);
+        } else {
+          setLoading(false);
+          setErrorMessage("Invalid Ethereum address.");
+          return;
+        }
+      }
+
+      // ✅ Check mainnet balance
+      const mainnetBalance = await mainnetProvider.getBalance(checksumAddress);
       if (mainnetBalance.isZero()) {
         setLoading(false);
         setErrorMessage(
@@ -46,51 +62,34 @@ const App = () => {
         return;
       }
 
-      // ✅ Check if user already claimed from faucet in the past 24h
-      const etherscanApiKey = process.env.REACT_APP_ETHERSCAN_API_KEY; // add to your .env
-      const txRes = await fetch(
-        `https://api-sepolia.etherscan.io/api?module=account&action=txlist&address=${FAUCET_ADDRESS}&sort=desc&apikey=${etherscanApiKey}`
-      );
-      const txData = await txRes.json();
-
-      if (txData.status === "1" && Array.isArray(txData.result)) {
-        const now = Math.floor(Date.now() / 1000);
-        const recentClaim = txData.result.find((tx: any) => {
-          const isToUser = tx.to?.toLowerCase() === address.toLowerCase();
-          const isRecent = now - Number(tx.timeStamp) < 86400; // 24h
-          return isToUser && isRecent;
-        });
-
-        if (recentClaim) {
-          setLoading(false);
-          setErrorMessage(
-            "You’ve already claimed from the faucet in the past 24 hours. Please try again later."
-          );
-          return;
-        }
-      }
-
-      // ✅ Proceed with Sepolia faucet if not claimed recently
+      // ✅ Call backend faucet
       const res = await fetch("/api/faucet", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ to: address }),
+        body: JSON.stringify({ to: checksumAddress }),
       });
+
       const data = await res.json();
       setLoading(false);
 
+      if (!res.ok) {
+        setErrorMessage(data.message || "Something went wrong.");
+        return;
+      }
+
+      // ✅ Success → show tx info
       if (data.txHash) {
         setTxInfo({
           hash: data.txHash,
-          to: address,
+          to: checksumAddress,
           network: "Ethereum Sepolia",
         });
       } else {
-        alert(data.message || "Transaction failed");
+        setErrorMessage(data.message || "Transaction failed.");
       }
     } catch (err) {
-      setLoading(false);
       console.error(err);
+      setLoading(false);
       setErrorMessage("Something went wrong checking your balance or history.");
     }
   };
@@ -169,7 +168,8 @@ const App = () => {
       </div>
 
       <h1>Sepolia ETH Faucet</h1>
-      <p>Claim some testnet ETH instantly</p>
+      <span>Claim some testnet ETH instantly.</span>
+      <span>One claim allowed every 24h. Your address needs to have some ETH on mainnet to avoid spam.</span>
 
       {/* 🔹 Receive Section */}
       <form onSubmit={handleSubmit} className="faucet-form">
@@ -252,7 +252,9 @@ const App = () => {
           {!donateTx && !donateLoading && (
             <form onSubmit={handleDonate} className="faucet-form">
               <div className="form-group">
-                <label htmlFor="donateForm">Amount in ETH</label>
+                <label htmlFor="donateForm">
+                  Amount in ETH to send back to the faucet
+                </label>
                 <input
                   type="number"
                   id="donateForm"
