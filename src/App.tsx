@@ -36,7 +36,7 @@ const App = () => {
     setErrorMessage(null);
 
     try {
-      // ✅ Check mainnet balance
+      // ✅ Check mainnet balance first
       const mainnetBalance = await mainnetProvider.getBalance(address);
       if (mainnetBalance.isZero()) {
         setLoading(false);
@@ -46,9 +46,32 @@ const App = () => {
         return;
       }
 
-      // 🔹 Proceed with Sepolia faucet
+      // ✅ Check if user already claimed from faucet in the past 24h
+      const etherscanApiKey = process.env.REACT_APP_ETHERSCAN_API_KEY; // add to your .env
+      const txRes = await fetch(
+        `https://api-sepolia.etherscan.io/api?module=account&action=txlist&address=${FAUCET_ADDRESS}&sort=desc&apikey=${etherscanApiKey}`
+      );
+      const txData = await txRes.json();
+
+      if (txData.status === "1" && Array.isArray(txData.result)) {
+        const now = Math.floor(Date.now() / 1000);
+        const recentClaim = txData.result.find((tx: any) => {
+          const isToUser = tx.to?.toLowerCase() === address.toLowerCase();
+          const isRecent = now - Number(tx.timeStamp) < 86400; // 24h
+          return isToUser && isRecent;
+        });
+
+        if (recentClaim) {
+          setLoading(false);
+          setErrorMessage(
+            "You’ve already claimed from the faucet in the past 24 hours. Please try again later."
+          );
+          return;
+        }
+      }
+
+      // ✅ Proceed with Sepolia faucet if not claimed recently
       const res = await fetch("/api/faucet", {
-        // const res = await fetch("http://localhost:5001/api/faucet", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ to: address }),
@@ -68,7 +91,7 @@ const App = () => {
     } catch (err) {
       setLoading(false);
       console.error(err);
-      setErrorMessage("Something went wrong checking your balance.");
+      setErrorMessage("Something went wrong checking your balance or history.");
     }
   };
 
