@@ -1,11 +1,31 @@
-A homemade faucet for Sepolia testnet ETH.
+Sepolia Faucet 🚰💧
 
-The faucet is currently disabled temporarily — need to add rate-limiting to prevent abuse.
+A homemade faucet for Sepolia testnet ETH — designed for developers, testers, and Ethereum enthusiasts who need a quick, reliable way to get testnet funds.
 
-sepoliafaucet.vercel.app
+Live Demo: sepoliafaucet.vercel.app
 
-TODO:
+Features
 
-- 2/check on etherscan if user received in the past 24h from the faucet to avoid spamming (and add key to vercel)
-- 3/add some sepolia ETH to the faucet
-- 4/ edit readme to add serverless method, two checks made (mainnet balance and 24h check) etc
+Instant Sepolia ETH drip — get testnet ETH in seconds.
+
+Serverless architecture — built with Vercel Serverless Functions for lightweight, scalable backend.
+
+Smart claim checks:
+
+✅ Mainnet balance check: prevents spam by requiring users to hold some real ETH.
+
+✅ 24-hour claim limit: ensures each address can only claim once per day.
+
+Frontend built with React & RainbowKit for wallet connection and a sleek UX.
+
+Donation support — connected users can give back to the faucet to keep it funded.
+
+Tech Stack
+
+Frontend: React, RainbowKit, Wagmi
+
+Backend: Vercel Serverless Functions, ethers.js
+
+Blockchain: Ethereum Sepolia Testnet
+
+APIs: Etherscan V2 for transaction history verification
